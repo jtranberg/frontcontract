@@ -1,16 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Front End Contract Connection</title>
+    <title>Contract Data</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.2.7-rc.0/web3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.2.7-rc.0/web3.min.js"></script>
     <style>
         /* Base Styling */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         
         /* Animated Background */
         body {
@@ -24,24 +20,14 @@
             position: relative;
         }
 
-        /* Rotating Hue Background */
         body::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(120deg, #ff0080, #ff8c00, #40e0d0, #8a2be2);
             background-size: 400% 400%;
             animation: gradient 15s ease infinite;
             z-index: -1;
-        }
-
-        @keyframes gradient {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
         }
 
         /* Glassmorphism Container */
@@ -56,7 +42,6 @@
             text-align: center;
         }
 
-        /* Button Styling */
         button {
             background-color: rgba(31, 31, 31, 0.6);
             color: #00d9ff;
@@ -76,8 +61,7 @@
             transform: scale(1.05);
         }
 
-        /* Output Areas with Glass Effect */
-        #accountArea, #contractArea, #dataArea {
+        #accountArea, #contractArea, #addressInput, #balanceData {
             font-size: 1em;
             font-weight: 400;
             margin: 10px 0;
@@ -88,6 +72,14 @@
             background: rgba(31, 31, 31, 0.3);
             backdrop-filter: blur(8px);
         }
+
+        input[type="text"] {
+            padding: 10px;
+            width: 80%;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -95,49 +87,149 @@
         <button onclick="connectMetamask()">Connect to MetaMask</button>
         <p id="accountArea">Account not connected</p>
         
-        <button onclick="connectContract()">Connect to Contract</button>
+        <input type="text" id="addressInput" placeholder="Enter Contract Address" value="0xdAC17F958D2ee523a2206206994597C13D831ec7" />
+        <button onclick="connectContract()">Connect to Contract and Fetch Data</button>
         <p id="contractArea">No contract connected</p>
-        
-        <button onclick="readContract()">Get Data from Contract</button>
-        <p id="dataArea">No data retrieved</p>
+
+        <!-- Multichain Balance Fetch -->
+        <button onclick="fetchMultichainBalances()">Get Multichain Balances</button>
+        <div id="balanceData">Multichain balances will appear here</div>
     </div>
 
     <script>
         let account;
-        const connectMetamask = async () => {
-            if (window.ethereum !== "undefined") {
-                const accounts = await ethereum.request({ method: "eth_requestAccounts" });
-                account = accounts[0];
-                document.getElementById("accountArea").innerHTML = "Connected Account: " + account;
+        const apiKey = "YourApiKeyToken"; // Replace with your unified Etherscan API key
+        const apiUrls = {
+            1: "https://api.etherscan.io",
+            56: "https://api.bscscan.com",
+            42161: "https://api.arbiscan.io",
+            10: "https://api-optimistic.etherscan.io",
+        };
+        const stETHABI = [
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "totalSupply",
+                "outputs": [{"name": "", "type": "uint256"}],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "decimals",
+                "outputs": [{"name": "", "type": "uint8"}],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "name",
+                "outputs": [{"name": "", "type": "string"}],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "symbol",
+                "outputs": [{"name": "", "type": "string"}],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
             }
-        }
+        ];
+
+        const connectMetamask = async () => {
+            if (window.ethereum !== undefined) {
+                try {
+                    const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+                    account = accounts[0];
+                    document.getElementById('accountArea').innerText = 'Connected Account: ' + account;
+                } catch (error) {
+                    console.error('User denied account access', error);
+                }
+            } else {
+                alert('MetaMask is not installed. Please install it to use this app.');
+            }
+        };
 
         const connectContract = async () => {
-            const ABI = [
-                {
-                    "inputs": [],
-                    "name": "myCity",
-                    "outputs": [
-                        {
-                            "internalType": "string",
-                            "name": "",
-                            "type": "string"
-                        }
-                    ],
-                    "stateMutability": "view",
-                    "type": "function"
-                }
-            ];
-            const Address = "0x610A29c2520597f5275046aecf613e526DF677d0";
-            window.web3 = await new Web3(window.ethereum);
-            window.contract = await new window.web3.eth.Contract(ABI, Address);
-            document.getElementById("contractArea").innerHTML = "Connected to Smart Contract";
-        }
+            const address = document.getElementById("addressInput").value;
+            if (!address) {
+                document.getElementById("contractArea").innerHTML = "Please enter a contract address";
+                return;
+            }
+
+            if (typeof window.web3 !== 'undefined') {
+                window.web3 = new Web3(window.ethereum);
+                window.contract = new window.web3.eth.Contract(stETHABI, address);
+                document.getElementById('contractArea').innerText = 'Connected to Contract at ' + address;
+
+                // Fetch contract data once connected
+                readContract();
+            } else {
+                alert('Web3 is not initialized. Please connect to MetaMask first.');
+            }
+        };
 
         const readContract = async () => {
-            const data = await window.contract.methods.myCity().call();
-            document.getElementById("dataArea").innerHTML = "Data from Contract: " + data;
-        }
+            if (window.contract) {
+                try {
+                    const [name, symbol, decimals, totalSupply] = await Promise.all([
+                        window.contract.methods.name().call(),
+                        window.contract.methods.symbol().call(),
+                        window.contract.methods.decimals().call(),
+                        window.contract.methods.totalSupply().call()
+                    ]);
+
+                    const adjustedTotalSupply = (totalSupply / (10 ** decimals)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+                    document.getElementById('contractArea').innerHTML += `
+                        <br>Token Name: ${name} (${symbol})<br>
+                        Total Supply: ${adjustedTotalSupply} ${symbol}<br>
+                    `;
+                } catch (error) {
+                    console.error("Error fetching contract data:", error);
+                }
+            }
+        };
+
+        const fetchMultichainBalances = async () => {
+            const chains = [1, 56, 42161, 10];
+            const address = document.getElementById("addressInput").value;
+            const balanceDataElement = document.getElementById("balanceData");
+            balanceDataElement.innerHTML = "Fetching balances...<br>";
+
+            for (const chain of chains) {
+                const apiUrl = apiUrls[chain];
+                if (!apiUrl) {
+                    balanceDataElement.innerHTML += `Chain ID ${chain} is not supported.<br>`;
+                    continue;
+                }
+
+                const url = `${apiUrl}/api?module=account&action=balance&address=${address}&tag=latest&apikey=${apiKey}`;
+                console.log(`Fetching balance from: ${url}`);
+
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (data.status === "1") {
+                        const balance = (parseFloat(data.result) / 1e18).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        balanceDataElement.innerHTML += `Chain ID ${chain}: ${balance}<br>`;
+                    } else {
+                        console.error(`Chain ID ${chain}: API returned error - ${data.message}`);
+                    }
+                } catch (error) {
+                    console.error(`Chain ID ${chain}: Fetch error -`, error);
+                }
+            }
+        };
     </script>
 </body>
 </html>
