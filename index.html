@@ -19,7 +19,7 @@
             overflow: hidden;
             position: relative;
         }
-
+    
         body::before {
             content: '';
             position: absolute;
@@ -29,7 +29,20 @@
             animation: gradient 15s ease infinite;
             z-index: -1;
         }
-
+    
+        /* Keyframe Animation for Background */
+        @keyframes gradient {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+    
         /* Glassmorphism Container */
         .container {
             background: rgba(255, 255, 255, 0.1);
@@ -41,7 +54,7 @@
             max-width: 500px;
             text-align: center;
         }
-
+    
         button {
             background-color: rgba(31, 31, 31, 0.6);
             color: #00d9ff;
@@ -54,13 +67,13 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
-
+    
         button:hover {
             background-color: #00d9ff;
             color: #121212;
             transform: scale(1.05);
         }
-
+    
         #accountArea, #contractArea, #addressInput, #balanceData {
             font-size: 1em;
             font-weight: 400;
@@ -72,7 +85,7 @@
             background: rgba(31, 31, 31, 0.3);
             backdrop-filter: blur(8px);
         }
-
+    
         input[type="text"] {
             padding: 10px;
             width: 80%;
@@ -81,6 +94,7 @@
             margin-bottom: 10px;
         }
     </style>
+    
 </head>
 <body>
     <div class="container">
@@ -97,6 +111,20 @@
     </div>
 
     <script>
+          // Alert message on page load
+    window.onload = function() {
+        alert(
+            "🔗 Welcome to the Web3 Contract Caller DApp! 🔗\n\n" +
+            "📌 This DApp allows you to connect to a smart contract, fetch data, and retrieve multichain balances.\n\n" +
+            "🛠️ How to use:\n" +
+            "1️⃣ Click 'Connect to MetaMask' to connect your wallet.\n" +
+            "2️⃣ Enter the contract address in the input box.\n" +
+            "3️⃣ Click 'Connect to Contract and Fetch Data' to see contract details.\n" +
+            "4️⃣ Use 'Get Multichain Balances' to retrieve balances across multiple blockchains.\n\n" +
+            "⚠️ Note: Ensure MetaMask is installed and properly set up before proceeding."
+        );
+    };
+
         let account;
         const apiKey = "YourApiKeyToken"; // Replace with your unified Etherscan API key
         const apiUrls = {
